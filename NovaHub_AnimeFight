@@ -67,12 +67,13 @@ if game.PlaceId == 123638582555543 then
 
     local MainTab = Window:CreateTab("Home")
     local AutoFarmTab = Window:CreateTab("Auto Farm")
+    local GamemodesTab = Window:CreateTab("Gamemodes")
     local AutoStarTab = Window:CreateTab("Auto Star")
     local PlayerTab = Window:CreateTab("Player")
     local MiscTab = Window:CreateTab("Misc")
 
     local function CreateHomeTab()
-        local ScriptInfoSection = MainTab:CreateSection("Script Information")
+        MainTab:CreateSection("Script Information")
         
         Rayfield:Notify({
             Title = "Script Loaded Successfully",
@@ -87,7 +88,7 @@ if game.PlaceId == 123638582555543 then
     end
 
     local function CreateAutoFarmTab()
-        local AutoFarmSection = AutoFarmTab:CreateSection("Auto Farm Settings")
+        AutoFarmTab:CreateSection("Auto Farm Settings")
         
         if not _G.TeleportData then
             _G.TeleportData = {
@@ -113,43 +114,22 @@ if game.PlaceId == 123638582555543 then
                 mapName
             }
             game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Bridge"):FireServer(unpack(args))
-            
-            Rayfield:Notify({
-                Title = "Teleporting",
-                Content = "Teleporting to " .. mapName,
-                Duration = 3,
-            })
         end
 
         local function loadMapEnemies(mapName)
             if MapEnemies[mapName] then
                 _G.TeleportData.enemyNames = MapEnemies[mapName]
-                Rayfield:Notify({
-                    Title = "Enemies Loaded",
-                    Content = "Loaded " .. mapName .. " enemies: " .. table.concat(MapEnemies[mapName], ", "),
-                    Duration = 5,
-                })
             end
         end
 
         local function addEnemy(enemyName)
             table.insert(_G.TeleportData.enemyNames, enemyName)
-            Rayfield:Notify({
-                Title = "Enemy Added",
-                Content = "Added: " .. enemyName,
-                Duration = 3,
-            })
         end
 
         local function removeEnemy(enemyName)
             for i, name in ipairs(_G.TeleportData.enemyNames) do
                 if name == enemyName then
                     table.remove(_G.TeleportData.enemyNames, i)
-                    Rayfield:Notify({
-                        Title = "Enemy Removed",
-                        Content = "Removed: " .. enemyName,
-                        Duration = 3,
-                    })
                     return
                 end
             end
@@ -256,11 +236,6 @@ if game.PlaceId == 123638582555543 then
             Name = "Clear All Enemies",
             Callback = function()
                 _G.TeleportData.enemyNames = {}
-                Rayfield:Notify({
-                    Title = "Enemies Cleared",
-                    Content = "All enemies removed from list",
-                    Duration = 3,
-                })
             end,
         })
 
@@ -273,8 +248,269 @@ if game.PlaceId == 123638582555543 then
         game:GetService("RunService").Heartbeat:Connect(updateCurrentEnemiesLabel)
     end
 
+    local function CreateGamemodesTab()
+        local ConfigSection = GamemodesTab:CreateSection("Configuration")
+        
+        local SelectedWorld = "Leaf Village"
+        local TowerTargetWave = 50
+        local TrialTargetWave = 30
+        
+        local WorldDropdown = GamemodesTab:CreateDropdown({
+            Name = "Select World",
+            Options = {"Leaf Village", "Dragon Town", "Slayer Village"},
+            CurrentOption = "Leaf Village",
+            Flag = "WorldSelector",
+            Callback = function(Option)
+                SelectedWorld = Option
+            end,
+        })
+        
+        local TowerWaveSlider = GamemodesTab:CreateSlider({
+            Name = "Tower Target Wave",
+            Range = {1, 100},
+            Increment = 1,
+            Suffix = "Wave",
+            CurrentValue = 50,
+            Flag = "TowerWave",
+            Callback = function(Value)
+                TowerTargetWave = Value
+            end,
+        })
+        
+        local TrialWaveSlider = GamemodesTab:CreateSlider({
+            Name = "Trial Target Wave",
+            Range = {1, 50},
+            Increment = 1,
+            Suffix = "Wave",
+            CurrentValue = 30,
+            Flag = "TrialWave",
+            Callback = function(Value)
+                TrialTargetWave = Value
+            end,
+        })
+        
+        local TowerSection = GamemodesTab:CreateSection("Auto Tower")
+        
+        local AutoTowerEnabled = false
+        local TowerStatusLabel = GamemodesTab:CreateLabel("Tower Status: Stopped")
+        
+        local function teleportToLobby()
+            local args = {
+                "General",
+                "Teleport",
+                "Teleport",
+                "Lobby"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Bridge"):FireServer(unpack(args))
+        end
+        
+        local function teleportToWorld(worldName)
+            local args = {
+                "General",
+                "Teleport",
+                "Teleport",
+                worldName
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Bridge"):FireServer(unpack(args))
+        end
+        
+        local function startTower()
+            local args = {
+                "Gamemodes",
+                "Tower",
+                "Start"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Bridge"):FireServer(unpack(args))
+        end
+        
+        local function leaveTower()
+            local args = {
+                "Gamemodes",
+                "Tower",
+                "Leave"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Bridge"):FireServer(unpack(args))
+        end
+        
+        local function joinTrial()
+            local args = {
+                "Gamemodes",
+                "Trial",
+                "Join"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Bridge"):FireServer(unpack(args))
+        end
+        
+        local function getCurrentWave(gamemode)
+            local gamemodeFolder = game:GetService("ReplicatedStorage").Gamemodes:FindFirstChild(gamemode)
+            if gamemodeFolder then
+                local waveValue = gamemodeFolder:FindFirstChild("Wave")
+                if waveValue then
+                    return waveValue.Value
+                end
+            end
+            return 0
+        end
+        
+        local AutoTowerToggle = GamemodesTab:CreateToggle({
+            Name = "Auto Tower",
+            CurrentValue = false,
+            Flag = "AutoTowerToggle",
+            Callback = function(Value)
+                AutoTowerEnabled = Value
+                TowerStatusLabel:Set("Tower Status: " .. (Value and "Running" or "Stopped"))
+                
+                if Value then
+                    if _G.AutoTowerExecuting then
+                        _G.AutoTowerExecuting = false
+                        task.wait(0.1)
+                    end
+                    
+                    _G.AutoTowerExecuting = true
+                    
+                    coroutine.wrap(function()
+                        while _G.AutoTowerExecuting and AutoTowerEnabled do
+                            local currentTime = os.date("*t")
+                            local minute = currentTime.min
+                            
+                            if minute >= 29 and minute <= 31 then
+                                task.wait(10)
+                            else
+                                teleportToLobby()
+                                task.wait(2)
+                                startTower()
+                                task.wait(5)
+                                
+                                local towerCompleted = false
+                                local startTime = tick()
+                                
+                                while _G.AutoTowerExecuting and AutoTowerEnabled and not towerCompleted do
+                                    local currentWave = getCurrentWave("Tower")
+                                    
+                                    if currentWave >= TowerTargetWave then
+                                        towerCompleted = true
+                                    end
+                                    
+                                    if tick() - startTime > 300 then
+                                        towerCompleted = true
+                                    end
+                                    
+                                    task.wait(1)
+                                end
+                                
+                                if _G.AutoTowerExecuting and AutoTowerEnabled then
+                                    leaveTower()
+                                    task.wait(0.5)
+                                    teleportToWorld(SelectedWorld)
+                                    task.wait(10)
+                                end
+                            end
+                        end
+                    end)()
+                else
+                    _G.AutoTowerExecuting = false
+                end
+            end,
+        })
+        
+        GamemodesTab:CreateSection("Auto Trial")
+        
+        local AutoTrialEnabled = false
+        local TrialStatusLabel = GamemodesTab:CreateLabel("Trial Status: Stopped")
+        
+        local AutoTrialToggle = GamemodesTab:CreateToggle({
+            Name = "Auto Trial",
+            CurrentValue = false,
+            Flag = "AutoTrialToggle",
+            Callback = function(Value)
+                AutoTrialEnabled = Value
+                TrialStatusLabel:Set("Trial Status: " .. (Value and "Running" or "Stopped"))
+                
+                if Value then
+                    if _G.AutoTrialExecuting then
+                        _G.AutoTrialExecuting = false
+                        task.wait(0.1)
+                    end
+                    
+                    _G.AutoTrialExecuting = true
+                    
+                    coroutine.wrap(function()
+                        while _G.AutoTrialExecuting and AutoTrialEnabled do
+                            local currentTime = os.date("*t")
+                            local minute = currentTime.min
+                            local second = currentTime.sec
+                            
+                            if (minute == 30 or minute == 0) and second >= 15 then
+                                joinTrial()
+                                task.wait(5)
+                                
+                                local trialCompleted = false
+                                local startTime = tick()
+                                
+                                while _G.AutoTrialExecuting and AutoTrialEnabled and not trialCompleted do
+                                    local currentWave = getCurrentWave("Trial")
+                                    
+                                    if currentWave >= TrialTargetWave then
+                                        trialCompleted = true
+                                    end
+                                    
+                                    if tick() - startTime > 600 then
+                                        trialCompleted = true
+                                    end
+                                    
+                                    task.wait(1)
+                                end
+                                
+                                if _G.AutoTrialExecuting and AutoTrialEnabled then
+                                    task.wait(30)
+                                    teleportToWorld(SelectedWorld)
+                                    task.wait(10)
+                                end
+                            end
+                            task.wait(1)
+                        end
+                    end)()
+                else
+                    _G.AutoTrialExecuting = false
+                end
+            end,
+        })
+        
+        GamemodesTab:CreateSection("Manual Controls")
+        
+        GamemodesTab:CreateButton({
+            Name = "Manual Start Tower",
+            Callback = function()
+                teleportToLobby()
+                task.wait(2)
+                startTower()
+            end,
+        })
+        
+        GamemodesTab:CreateButton({
+            Name = "Manual Join Trial",
+            Callback = function()
+                joinTrial()
+            end,
+        })
+        
+        GamemodesTab:CreateButton({
+            Name = "Emergency Stop All",
+            Callback = function()
+                _G.AutoTowerExecuting = false
+                _G.AutoTrialExecuting = false
+                AutoTowerEnabled = false
+                AutoTrialEnabled = false
+                AutoTowerToggle:Set(false)
+                AutoTrialToggle:Set(false)
+                TowerStatusLabel:Set("Tower Status: Stopped")
+                TrialStatusLabel:Set("Trial Status: Stopped")
+            end,
+        })
+    end
+
     local function CreateAutoStarTab()
-        local AutoStarSection = AutoStarTab:CreateSection("Auto Star Opening")
+        AutoStarTab:CreateSection("Auto Star Opening")
         
         local AutoFarmDelay = 0.1
         local AutoFarmEnabled = false
@@ -337,7 +573,7 @@ if game.PlaceId == 123638582555543 then
     end
 
     local function CreatePlayerTab()
-        local PlayerSection = PlayerTab:CreateSection("Player Options")
+        PlayerTab:CreateSection("Player Options")
         
         local Players = game:GetService("Players")
         local RunService = game:GetService("RunService")
@@ -349,14 +585,6 @@ if game.PlaceId == 123638582555543 then
                 if obj:IsA("Model") and obj.Name == LocalPlayer.Name then
                     return obj
                 end
-            end
-            return nil
-        end
-
-        local function GetHumanoid()
-            local playerModel = GetPlayerModel()
-            if playerModel then
-                return playerModel:FindFirstChildOfClass("Humanoid")
             end
             return nil
         end
@@ -616,8 +844,7 @@ if game.PlaceId == 123638582555543 then
     end
 
     local function CreateMiscTab()
-        local PerformanceSection = MiscTab:CreateSection("Performance Settings")
-        local AntiAFKSection = MiscTab:CreateSection("Anti-AFK")
+        MiscTab:CreateSection("Miscellaneous Settings")
 
         local FPSEnabled = false
         local FPSValue = 60
@@ -697,13 +924,6 @@ if game.PlaceId == 123638582555543 then
                     settings().Rendering.QualityLevel = 1
                     
                     TexturesDestroyed = true
-                    
-                    Rayfield:Notify({
-                        Title = "Textures Destroyed",
-                        Content = "All textures removed. Toggle off to restore.",
-                        Duration = 5,
-                    })
-                    
                 elseif not Value and TexturesDestroyed then
                     for part, material in pairs(OriginalMaterials) do
                         if part and part.Parent then
@@ -734,12 +954,6 @@ if game.PlaceId == 123638582555543 then
                     DestroyedDecals = {}
                     OriginalLightingSettings = {}
                     TexturesDestroyed = false
-                    
-                    Rayfield:Notify({
-                        Title = "Textures Restored",
-                        Content = "All textures have been restored.",
-                        Duration = 5,
-                    })
                 end
             end,
         })
@@ -762,21 +976,11 @@ if game.PlaceId == 123638582555543 then
                             VirtualUser:ClickButton2(Vector2.new())
                         end
                     end)
-                    Rayfield:Notify({
-                        Title = "Anti-AFK Enabled",
-                        Content = "You won't be disconnected for idling",
-                        Duration = 3,
-                    })
                 else
                     if AntiAFKConnection then
                         AntiAFKConnection:Disconnect()
                         AntiAFKConnection = nil
                     end
-                    Rayfield:Notify({
-                        Title = "Anti-AFK Disabled",
-                        Content = "Normal AFK rules apply",
-                        Duration = 3,
-                    })
                 end
             end,
         })
@@ -784,6 +988,7 @@ if game.PlaceId == 123638582555543 then
 
     CreateHomeTab()
     CreateAutoFarmTab()
+    CreateGamemodesTab()
     CreateAutoStarTab()
     CreatePlayerTab()
     CreateMiscTab()
