@@ -45,7 +45,7 @@ if game.PlaceId == 123638582555543 then
         DisableBuildWarnings = false,
         ConfigurationSaving = {
             Enabled = true,
-            FolderName = "World",
+            FolderName = nil,
             FileName = "NovaHub"
         },
         Discord = {
@@ -447,10 +447,11 @@ if game.PlaceId == 123638582555543 then
                                 teleportToLobby()
                                 task.wait(2)
                                 startTower()
-                                task.wait(30)
+                                task.wait(2.5)
                                 
                                 local towerCompleted = false
                                 local startTime = tick()
+                                local lastTeleportTime = 0
                                 
                                 while _G.AutoTowerExecuting and AutoTowerEnabled and not towerCompleted do
                                     local currentWave = getCurrentWave("Tower")
@@ -463,7 +464,12 @@ if game.PlaceId == 123638582555543 then
                                         towerCompleted = true
                                     end
 
-                                    task.wait(1)
+                                    if tick() - lastTeleportTime >= 2.5 then
+                                        teleportToEnemies()
+                                        lastTeleportTime = tick()
+                                    end
+                                    
+                                    task.wait(0.1)
                                 end
                                 
                                 if _G.AutoTowerExecuting and AutoTowerEnabled then
@@ -518,11 +524,14 @@ if game.PlaceId == 123638582555543 then
                             if (minute == 30 or minute == 0) and second >= 15 then
                                 local currentSelectedWorld = SelectedWorld
                                 
+                                teleportToLobby()
+                                task.wait(2)
                                 joinTrial()
-                                task.wait(30)
+                                task.wait(2.5)
                                 
                                 local trialCompleted = false
                                 local startTime = tick()
+                                local lastTeleportTime = 0
                                 
                                 while _G.AutoTrialExecuting and AutoTrialEnabled and not trialCompleted do
                                     local currentWave = getCurrentWave("Trial")
@@ -535,7 +544,12 @@ if game.PlaceId == 123638582555543 then
                                         trialCompleted = true
                                     end
 
-                                    task.wait(1)
+                                    if tick() - lastTeleportTime >= 2.5 then
+                                        teleportToEnemies()
+                                        lastTeleportTime = tick()
+                                    end
+                                    
+                                    task.wait(0.1)
                                 end
                                 
                                 if _G.AutoTrialExecuting and AutoTrialEnabled then
@@ -569,6 +583,8 @@ if game.PlaceId == 123638582555543 then
         GamemodesTab:CreateButton({
             Name = "Manual Join Trial",
             Callback = function()
+                teleportToLobby()
+                task.wait(2)
                 joinTrial()
             end,
         })
