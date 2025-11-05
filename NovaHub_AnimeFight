@@ -45,8 +45,8 @@ if game.PlaceId == 123638582555543 then
         DisableBuildWarnings = false,
         ConfigurationSaving = {
             Enabled = true,
-            FolderName = nil,
-            FileName = "NovaHub"
+            FolderName = "NovaHub",
+            FileName = "Settings"
         },
         Discord = {
             Enabled = true,
@@ -379,6 +379,15 @@ if game.PlaceId == 123638582555543 then
             game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Bridge"):FireServer(unpack(args))
         end
         
+        local function leaveTrial()
+            local args = {
+                "Gamemodes",
+                "Trial",
+                "Leave"
+            }
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Bridge"):FireServer(unpack(args))
+        end
+        
         local function getCurrentWave(gamemode)
             local gamemodeFolder = game:GetService("ReplicatedStorage").Gamemodes:FindFirstChild(gamemode)
             if gamemodeFolder then
@@ -413,6 +422,12 @@ if game.PlaceId == 123638582555543 then
             return currentWave > 0
         end
         
+        local function isTrialTime()
+            local currentTime = os.date("*t")
+            local minute = currentTime.min
+            return minute == 30 or minute == 0
+        end
+        
         local AutoTowerToggle = GamemodesTab:CreateToggle({
             Name = "Auto Tower",
             CurrentValue = false,
@@ -431,17 +446,29 @@ if game.PlaceId == 123638582555543 then
                     
                     coroutine.wrap(function()
                         while _G.AutoTowerExecuting and AutoTowerEnabled do
-                            if GamemodePriority == "Trial" and isInTrial() then
-                                task.wait(10)
-                                continue
-                            end
-                            
-                            local currentTime = os.date("*t")
-                            local minute = currentTime.min
-                            
-                            if minute >= 29 and minute <= 31 then
+                            if GamemodePriority == "Trial" and isTrialTime() then
+                                if isInTower() then
+                                    leaveTower()
+                                    task.wait(2)
+                                    teleportToMap(SelectedWorld)
+                                    task.wait(2)
+                                    teleportToWorldRoot(SelectedWorld)
+                                    task.wait(2)
+                                end
+                                teleportToLobby()
+                                task.wait(2)
+                                joinTrial()
                                 task.wait(10)
                             else
+                                if isInTrial() then
+                                    leaveTrial()
+                                    task.wait(2)
+                                    teleportToMap(SelectedWorld)
+                                    task.wait(2)
+                                    teleportToWorldRoot(SelectedWorld)
+                                    task.wait(2)
+                                end
+                                
                                 local currentSelectedWorld = SelectedWorld
                                 
                                 teleportToLobby()
@@ -512,16 +539,21 @@ if game.PlaceId == 123638582555543 then
                     
                     coroutine.wrap(function()
                         while _G.AutoTrialExecuting and AutoTrialEnabled do
-                            if GamemodePriority == "Tower" and isInTower() then
+                            if GamemodePriority == "Tower" and isInTower() and not isTrialTime() then
                                 task.wait(10)
                                 continue
                             end
                             
-                            local currentTime = os.date("*t")
-                            local minute = currentTime.min
-                            local second = currentTime.sec
-                            
-                            if (minute == 30 or minute == 0) and second >= 15 then
+                            if isTrialTime() then
+                                if isInTower() then
+                                    leaveTower()
+                                    task.wait(2)
+                                    teleportToMap(SelectedWorld)
+                                    task.wait(2)
+                                    teleportToWorldRoot(SelectedWorld)
+                                    task.wait(2)
+                                end
+                                
                                 local currentSelectedWorld = SelectedWorld
                                 
                                 teleportToLobby()
@@ -553,7 +585,8 @@ if game.PlaceId == 123638582555543 then
                                 end
                                 
                                 if _G.AutoTrialExecuting and AutoTrialEnabled then
-                                    task.wait(30)
+                                    leaveTrial()
+                                    task.wait(2)
                                     teleportToMap(currentSelectedWorld)
                                     task.wait(2)
                                     teleportToWorldRoot(currentSelectedWorld)
