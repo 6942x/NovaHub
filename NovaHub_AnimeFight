@@ -402,7 +402,7 @@ if game.PlaceId == 123638582555543 then
                                     leaveTower()
                                     task.wait(0.5)
                                     teleportToWorld(SelectedWorld)
-                                    task.wait(10)
+                                    task.wait(5)
                                 end
                             end
                         end
@@ -464,7 +464,7 @@ if game.PlaceId == 123638582555543 then
                                 if _G.AutoTrialExecuting and AutoTrialEnabled then
                                     task.wait(30)
                                     teleportToWorld(SelectedWorld)
-                                    task.wait(10)
+                                    task.wait(5)
                                 end
                             end
                             task.wait(1)
