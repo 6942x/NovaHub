@@ -178,6 +178,34 @@ if game.PlaceId == 123638582555543 then
             end
         end
 
+        local AutoClickEnabled = false
+        local AutoClickSpeed = 0.001
+        local AutoClickConnection
+        local AutoClickStatusLabel = AutoFarmTab:CreateLabel("Auto Click: Stopped")
+
+        local function toggleAutoClick()
+            if AutoClickEnabled then
+                AutoClickEnabled = false
+                if AutoClickConnection then
+                    AutoClickConnection:Disconnect()
+                    AutoClickConnection = nil
+                end
+                AutoClickStatusLabel:Set("Auto Click: Stopped")
+            else
+                AutoClickEnabled = true
+                AutoClickConnection = RunService.Heartbeat:Connect(function()
+                    local clickArgs = {
+                        "Fighters",
+                        "Attack",
+                        "Click"
+                    }
+                    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Bridge"):FireServer(unpack(clickArgs))
+                    task.wait(AutoClickSpeed)
+                end)
+                AutoClickStatusLabel:Set("Auto Click: Running")
+            end
+        end
+
         local AutoTeleportEnabled = false
         local AutoTeleportConnection
         local AutoTeleportStatusLabel = AutoFarmTab:CreateLabel("Auto Teleport: Stopped")
@@ -215,6 +243,38 @@ if game.PlaceId == 123638582555543 then
                 task.wait(2)
                 teleportToWorldRoot(SelectedWorld)
                 loadMapEnemies(SelectedWorld)
+            end,
+        })
+
+        local ClickSpeedSlider = AutoFarmTab:CreateSlider({
+            Name = "Auto Click Speed",
+            Range = {0.001, 1},
+            Increment = 0.001,
+            Suffix = "seconds",
+            CurrentValue = 0.001,
+            Flag = "AutoClickSpeed",
+            Callback = function(Value)
+                AutoClickSpeed = Value
+                if AutoClickEnabled and AutoClickConnection then
+                    AutoClickConnection:Disconnect()
+                    AutoClickEnabled = false
+                    toggleAutoClick()
+                end
+            end,
+        })
+
+        AutoFarmTab:CreateToggle({
+            Name = "Auto Click Attack",
+            CurrentValue = false,
+            Flag = "AutoClickToggle",
+            Callback = function(Value)
+                if Value then
+                    toggleAutoClick()
+                else
+                    if AutoClickEnabled then
+                        toggleAutoClick()
+                    end
+                end
             end,
         })
 
@@ -258,6 +318,18 @@ if game.PlaceId == 123638582555543 then
             Name = "Clear All Enemies",
             Callback = function()
                 _G.TeleportData.enemyNames = {}
+            end,
+        })
+
+        AutoFarmTab:CreateButton({
+            Name = "Emergency Stop All",
+            Callback = function()
+                if AutoClickEnabled then
+                    toggleAutoClick()
+                end
+                if AutoTeleportEnabled then
+                    toggleAutoTeleport()
+                end
             end,
         })
 
