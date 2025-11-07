@@ -498,7 +498,19 @@ if game.PlaceId == 123638582555543 then
         local function isTrialTime()
             local currentTime = os.date("*t")
             local minute = currentTime.min
-            return minute >= 30 or minute == 0
+            return minute == 30 or minute == 0
+        end
+
+        local function getTimeUntilNextTrial()
+            local currentTime = os.date("*t")
+            local minute = currentTime.min
+            
+            if minute < 30 then
+                return (30 - minute) * 60 - currentTime.sec
+            elseif minute < 60 then
+                return (60 - minute) * 60 - currentTime.sec
+            end
+            return 0
         end
 
         local function safeTeleportToWorld()
@@ -538,16 +550,6 @@ if game.PlaceId == 123638582555543 then
                     coroutine.wrap(function()
                         while _G.AutoTowerExecuting and AutoTowerEnabled do
                             if GamemodePriority == "Trial" and isTrialTime() then
-                                if isInTower() then
-                                    leaveTower()
-                                    task.wait(3)
-                                end
-                                if not isInTrial() then
-                                    safeTeleportToLobby()
-                                    task.wait(2)
-                                    joinTrial()
-                                    task.wait(5)
-                                end
                                 task.wait(5)
                             else
                                 if isInTrial() then
@@ -605,6 +607,18 @@ if game.PlaceId == 123638582555543 then
         
         local AutoTrialEnabled = false
         local TrialStatusLabel = GamemodesTab:CreateLabel("Trial Status: Stopped")
+        local NextTrialLabel = GamemodesTab:CreateLabel("Next Trial In: --:--")
+        
+        local function updateNextTrialTime()
+            if AutoTrialEnabled then
+                local timeUntil = getTimeUntilNextTrial()
+                local minutes = math.floor(timeUntil / 60)
+                local seconds = math.floor(timeUntil % 60)
+                NextTrialLabel:Set("Next Trial In: " .. string.format("%02d:%02d", minutes, seconds))
+            else
+                NextTrialLabel:Set("Next Trial In: --:--")
+            end
+        end
         
         local AutoTrialToggle = GamemodesTab:CreateToggle({
             Name = "Auto Trial",
@@ -612,7 +626,7 @@ if game.PlaceId == 123638582555543 then
             Flag = "AutoTrialToggle",
             Callback = function(Value)
                 AutoTrialEnabled = Value
-                TrialStatusLabel:Set("Trial Status: " .. (Value and "Running" or "Stopped"))
+                TrialStatusLabel:Set("Trial Status: " .. (Value and "Waiting for Trial Time" or "Stopped"))
                 
                 if Value then
                     if _G.AutoTrialExecuting then
@@ -624,12 +638,11 @@ if game.PlaceId == 123638582555543 then
                     
                     coroutine.wrap(function()
                         while _G.AutoTrialExecuting and AutoTrialEnabled do
-                            if GamemodePriority == "Tower" and isInTower() and not isTrialTime() then
-                                task.wait(10)
-                                continue
-                            end
+                            updateNextTrialTime()
                             
                             if isTrialTime() then
+                                TrialStatusLabel:Set("Trial Status: Running")
+                                
                                 if isInTower() then
                                     leaveTower()
                                     task.wait(3)
@@ -671,14 +684,28 @@ if game.PlaceId == 123638582555543 then
                                     safeTeleportToWorld()
                                     task.wait(5)
                                 end
+                                
+                                TrialStatusLabel:Set("Trial Status: Waiting for Trial Time")
                             else
-                                task.wait(10)
+                                local waitTime = getTimeUntilNextTrial()
+                                if waitTime > 0 then
+                                    TrialStatusLabel:Set("Trial Status: Waiting - " .. math.floor(waitTime/60) .. "m " .. math.floor(waitTime%60) .. "s")
+                                end
+                                task.wait(5)
                             end
+                            task.wait(1)
+                        end
+                    end)()
+                    
+                    coroutine.wrap(function()
+                        while _G.AutoTrialExecuting and AutoTrialEnabled do
+                            updateNextTrialTime()
                             task.wait(1)
                         end
                     end)()
                 else
                     _G.AutoTrialExecuting = false
+                    NextTrialLabel:Set("Next Trial In: --:--")
                 end
             end,
         })
@@ -714,6 +741,7 @@ if game.PlaceId == 123638582555543 then
                 AutoTrialToggle:Set(false)
                 TowerStatusLabel:Set("Tower Status: Stopped")
                 TrialStatusLabel:Set("Trial Status: Stopped")
+                NextTrialLabel:Set("Next Trial In: --:--")
             end,
         })
     end
