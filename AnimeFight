@@ -709,6 +709,283 @@ if game.PlaceId == 123638582555543 then
                 end
             end,
         })
+
+        GamemodesTab:CreateSection("Auto Boss Farm")
+        
+        local BossFarmEnabled = false
+        local BossFarmWorld = "Leaf Village"
+        local BossStatusLabel = GamemodesTab:CreateLabel("Boss Status: Stopped")
+        local NextBossLabel = GamemodesTab:CreateLabel("Next Boss In: --:--")
+        local CurrentBossLabel = GamemodesTab:CreateLabel("Current Boss: None")
+        
+        local BossWorldSlider = GamemodesTab:CreateSlider({
+            Name = "Return World After Boss",
+            Range = {1, 3},
+            Increment = 1,
+            Suffix = "World",
+            CurrentValue = 1,
+            Flag = "BossWorldSelector",
+            Callback = function(Value)
+                local worlds = {"Leaf Village", "Dragon Town", "Slayer Village"}
+                BossFarmWorld = worlds[Value]
+            end,
+        })
+        
+        local function getNextBossTime()
+            local currentTime = os.date("*t")
+            local minute = currentTime.min
+            local second = currentTime.sec
+            
+            if minute < 10 then
+                return (10 - minute) * 60 - second
+            elseif minute < 40 then
+                return (40 - minute) * 60 - second
+            else
+                return (70 - minute) * 60 - second
+            end
+        end
+        
+        local function isBossTime()
+            local currentTime = os.date("*t")
+            local minute = currentTime.min
+            return minute == 10 or minute == 40
+        end
+        
+        local function getBossName()
+            local enemies = workspace.Client.Enemies
+            for _, enemy in pairs(enemies:GetChildren()) do
+                if enemy.Name == "KesameAkat" or enemy.Name == "ItacheAkat" then
+                    return enemy.Name
+                end
+            end
+            return nil
+        end
+        
+        local function attackBoss(bossName)
+            local targetEnemies = workspace.Client.Enemies
+            local boss = targetEnemies:FindFirstChild(bossName)
+            if boss and boss:FindFirstChild("HumanoidRootPart") then
+                local attackArgs = {
+                    "Combat",
+                    "Attack",
+                    bossName
+                }
+                game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Bridge"):FireServer(unpack(attackArgs))
+                return true
+            end
+            return false
+        end
+        
+        local function teleportToBoss(bossName)
+            local targetEnemies = workspace.Client.Enemies
+            local boss = targetEnemies:FindFirstChild(bossName)
+            local character = game.Players.LocalPlayer.Character
+            if boss and boss:FindFirstChild("HumanoidRootPart") and character and character:FindFirstChild("HumanoidRootPart") then
+                character.HumanoidRootPart.CFrame = boss.HumanoidRootPart.CFrame
+                return true
+            end
+            return false
+        end
+        
+        local function updateNextBossTime()
+            if BossFarmEnabled then
+                local timeUntil = getNextBossTime()
+                local minutes = math.floor(timeUntil / 60)
+                local seconds = math.floor(timeUntil % 60)
+                NextBossLabel:Set("Next Boss In: " .. string.format("%02d:%02d", minutes, seconds))
+            else
+                NextBossLabel:Set("Next Boss In: --:--")
+            end
+        end
+        
+        local AutoBossToggle = GamemodesTab:CreateToggle({
+            Name = "Auto Boss Farm",
+            CurrentValue = false,
+            Flag = "AutoBossToggle",
+            Callback = function(Value)
+                BossFarmEnabled = Value
+                BossStatusLabel:Set("Boss Status: " .. (Value and "Waiting for Boss Time" or "Stopped"))
+                
+                if Value then
+                    if _G.AutoBossExecuting then
+                        _G.AutoBossExecuting = false
+                        task.wait(1)
+                    end
+                    
+                    _G.AutoBossExecuting = true
+                    
+                    coroutine.wrap(function()
+                        while _G.AutoBossExecuting and BossFarmEnabled do
+                            updateNextBossTime()
+                            
+                            if isBossTime() then
+                                BossStatusLabel:Set("Boss Status: Checking for Boss")
+                                CurrentBossLabel:Set("Current Boss: Checking...")
+                                
+                                task.wait(10)
+                                
+                                safeTeleportToLobby()
+                                task.wait(2)
+                                
+                                teleportToMap("Leaf Village")
+                                task.wait(3)
+                                
+                                local bossName = getBossName()
+                                if bossName then
+                                    CurrentBossLabel:Set("Current Boss: " .. bossName)
+                                    BossStatusLabel:Set("Boss Status: Fighting " .. bossName)
+                                    
+                                    local bossDefeated = false
+                                    local startTime = tick()
+                                    
+                                    while _G.AutoBossExecuting and BossFarmEnabled and not bossDefeated do
+                                        local bossExists = workspace.Client.Enemies:FindFirstChild(bossName)
+                                        
+                                        if bossExists then
+                                            teleportToBoss(bossName)
+                                            attackBoss(bossName)
+                                        else
+                                            bossDefeated = true
+                                        end
+                                        
+                                        if tick() - startTime > 300 then
+                                            bossDefeated = true
+                                        end
+                                        
+                                        task.wait(0.5)
+                                    end
+                                    
+                                    if _G.AutoBossExecuting and BossFarmEnabled then
+                                        BossStatusLabel:Set("Boss Status: Returning to World")
+                                        CurrentBossLabel:Set("Current Boss: None")
+                                        
+                                        safeTeleportToLobby()
+                                        task.wait(2)
+                                        
+                                        teleportToMap(BossFarmWorld)
+                                        task.wait(2)
+                                        
+                                        teleportToWorldRoot(BossFarmWorld)
+                                        task.wait(2)
+                                    end
+                                else
+                                    CurrentBossLabel:Set("Current Boss: Not Found")
+                                    BossStatusLabel:Set("Boss Status: Boss Not Found")
+                                    
+                                    safeTeleportToLobby()
+                                    task.wait(2)
+                                    
+                                    teleportToMap(BossFarmWorld)
+                                    task.wait(2)
+                                    
+                                    teleportToWorldRoot(BossFarmWorld)
+                                    task.wait(2)
+                                end
+                                
+                                BossStatusLabel:Set("Boss Status: Waiting for Boss Time")
+                            else
+                                local waitTime = getNextBossTime()
+                                if waitTime > 0 then
+                                    BossStatusLabel:Set("Boss Status: Waiting - " .. math.floor(waitTime/60) .. "m " .. math.floor(waitTime%60) .. "s")
+                                end
+                                task.wait(5)
+                            end
+                            task.wait(1)
+                        end
+                    end)()
+                    
+                    coroutine.wrap(function()
+                        while _G.AutoBossExecuting and BossFarmEnabled do
+                            updateNextBossTime()
+                            task.wait(1)
+                        end
+                    end)()
+                else
+                    _G.AutoBossExecuting = false
+                    NextBossLabel:Set("Next Boss In: --:--")
+                    CurrentBossLabel:Set("Current Boss: None")
+                end
+            end,
+        })
+
+        GamemodesTab:CreateSection("Instant Boss Check")
+        
+        local InstantBossButton = GamemodesTab:CreateButton({
+            Name = "Instant Check & Kill Boss",
+            Callback = function()
+                if _G.AutoBossExecuting then
+                    Rayfield:Notify({
+                        Title = "Auto Boss Farm Running",
+                        Content = "Please stop Auto Boss Farm first",
+                        Duration = 3,
+                    })
+                    return
+                end
+                
+                BossStatusLabel:Set("Boss Status: Checking for Boss")
+                CurrentBossLabel:Set("Current Boss: Checking...")
+                
+                local originalWorld = BossFarmWorld
+                
+                safeTeleportToLobby()
+                task.wait(2)
+                
+                teleportToMap("Leaf Village")
+                task.wait(3)
+                
+                local bossName = getBossName()
+                if bossName then
+                    CurrentBossLabel:Set("Current Boss: " .. bossName)
+                    BossStatusLabel:Set("Boss Status: Fighting " .. bossName)
+                    
+                    local bossDefeated = false
+                    local startTime = tick()
+                    
+                    coroutine.wrap(function()
+                        while not bossDefeated and tick() - startTime < 300 do
+                            local bossExists = workspace.Client.Enemies:FindFirstChild(bossName)
+                            
+                            if bossExists then
+                                teleportToBoss(bossName)
+                                attackBoss(bossName)
+                            else
+                                bossDefeated = true
+                            end
+                            
+                            task.wait(0.5)
+                        end
+                        
+                        BossStatusLabel:Set("Boss Status: Returning to World")
+                        CurrentBossLabel:Set("Current Boss: None")
+                        
+                        safeTeleportToLobby()
+                        task.wait(2)
+                        
+                        teleportToMap(originalWorld)
+                        task.wait(2)
+                        
+                        teleportToWorldRoot(originalWorld)
+                        task.wait(2)
+                        
+                        BossStatusLabel:Set("Boss Status: Stopped")
+                    end)()
+                else
+                    CurrentBossLabel:Set("Current Boss: Not Found")
+                    BossStatusLabel:Set("Boss Status: Boss Not Found")
+                    
+                    safeTeleportToLobby()
+                    task.wait(2)
+                    
+                    teleportToMap(originalWorld)
+                    task.wait(2)
+                    
+                    teleportToWorldRoot(originalWorld)
+                    task.wait(2)
+                    
+                    BossStatusLabel:Set("Boss Status: Stopped")
+                end
+            end,
+        })
         
         GamemodesTab:CreateSection("Manual Controls")
         
@@ -735,13 +1012,19 @@ if game.PlaceId == 123638582555543 then
             Callback = function()
                 _G.AutoTowerExecuting = false
                 _G.AutoTrialExecuting = false
+                _G.AutoBossExecuting = false
                 AutoTowerEnabled = false
                 AutoTrialEnabled = false
+                BossFarmEnabled = false
                 AutoTowerToggle:Set(false)
                 AutoTrialToggle:Set(false)
+                AutoBossToggle:Set(false)
                 TowerStatusLabel:Set("Tower Status: Stopped")
                 TrialStatusLabel:Set("Trial Status: Stopped")
+                BossStatusLabel:Set("Boss Status: Stopped")
                 NextTrialLabel:Set("Next Trial In: --:--")
+                NextBossLabel:Set("Next Boss In: --:--")
+                CurrentBossLabel:Set("Current Boss: None")
             end,
         })
     end
