@@ -46,11 +46,17 @@ local function CreateGradient(instance, colors, rotation)
     local gradient = Instance.new("UIGradient")
     
     if #colors == 2 then
-        gradient.Color = ColorSequence.new(colors[1], colors[2])
+        -- Para 2 cores, use o construtor simples
+        gradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, colors[1]),
+            ColorSequenceKeypoint.new(1, colors[2])
+        })
     else
+        -- Para múltiplas cores
         local keypoints = {}
         for i, color in ipairs(colors) do
-            table.insert(keypoints, ColorSequenceKeypoint.new((i - 1) / (#colors - 1), color))
+            local position = (i - 1) / (#colors - 1)
+            table.insert(keypoints, ColorSequenceKeypoint.new(position, color))
         end
         gradient.Color = ColorSequence.new(keypoints)
     end
