@@ -27,6 +27,7 @@ NovaHub.Enabled = true
 NovaHub.ConfigFile = "NovaHubConfig.json"
 NovaHub.SavedConfig = {}
 
+-- Utility Functions
 local function CreateRoundCorners(instance, cornerSize)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, cornerSize)
@@ -46,13 +47,11 @@ local function CreateGradient(instance, colors, rotation)
     local gradient = Instance.new("UIGradient")
     
     if #colors == 2 then
-        -- Para 2 cores, use o construtor simples
         gradient.Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0, colors[1]),
             ColorSequenceKeypoint.new(1, colors[2])
         })
     else
-        -- Para múltiplas cores
         local keypoints = {}
         for i, color in ipairs(colors) do
             local position = (i - 1) / (#colors - 1)
@@ -118,6 +117,7 @@ local function CreatePadding(parent, left, right, top, bottom)
     return padding
 end
 
+-- Core Functions
 function NovaHub:JoinDiscord(inviteCode)
     local success, err = pcall(function()
         local request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request)
@@ -165,7 +165,7 @@ end
 
 function NovaHub:AutoSaveConfig()
     spawn(function()
-        while wait(5) do
+        while task.wait(5) do
             if self.SavedConfig and next(self.SavedConfig) ~= nil then
                 self:SaveConfig()
             end
@@ -239,7 +239,7 @@ function NovaHub:Notify(title, content, duration, notificationType)
     iconFrame.Position = UDim2.new(0, 0, 0, 0)
     iconFrame.Parent = notification
     
-    local iconCorner = CreateRoundCorners(iconFrame, 10)
+    CreateRoundCorners(iconFrame, 10)
     
     local titleLabel = Instance.new("TextLabel")
     titleLabel.Name = "Title"
@@ -1253,7 +1253,7 @@ function NovaHub:ToggleUI()
                     {Size = UDim2.new(0, 0, 0, 0)}
                 ):Play()
                 
-                delay(0.3, function()
+                task.delay(0.3, function()
                     mainFrame.Visible = false
                 end)
             end
