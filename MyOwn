@@ -1404,4 +1404,6 @@ getgenv().CreateWindow = function(config)
     return NovaHub:CreateWindow(config)
 end
 
+getgenv().NovaHub = NovaHub
+
 return NovaHub
