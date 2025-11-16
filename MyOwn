@@ -19,7 +19,6 @@ Nova.Config = {
         Secondary = Color3.fromRGB(100, 60, 200),
         Background = Color3.fromRGB(25, 20, 30),
         Topbar = Color3.fromRGB(35, 25, 45),
-        Element = Color3.fromRGB(40, 30, 55),
         Text = Color3.fromRGB(240, 240, 240),
         Success = Color3.fromRGB(85, 255, 85),
         Warning = Color3.fromRGB(255, 170, 0),
@@ -389,9 +388,9 @@ function Nova:CreateWindow(config)
     local loadingGui, UpdateProgress = self:CreateLoadingScreen()
     UpdateProgress(0.1, "Initializing...")
     
-    if config.DiscordInvite then
+    if config.Discord and config.Discord.Enabled then
         UpdateProgress(0.2, "Connecting to Discord...")
-        self:JoinDiscord(config.DiscordInvite)
+        self:JoinDiscord(config.Discord.Invite)
     end
     
     UpdateProgress(0.3, "Creating interface...")
@@ -535,8 +534,15 @@ function Nova:CreateWindow(config)
     
     UpdateProgress(0.8, "Loading settings...")
     
-    self:LoadConfig()
-    self:AutoSaveConfig()
+    if config.ConfigurationSaving and config.ConfigurationSaving.Enabled then
+        self.ConfigFile = config.ConfigurationSaving.FolderName .. "/" .. config.ConfigurationSaving.FileName .. ".json"
+        self:LoadConfig()
+        self:AutoSaveConfig()
+    end
+    
+    if config.ToggleUIKeybind then
+        self.Config.ToggleKey = config.ToggleUIKeybind
+    end
     
     getgenv().CreateTab = function(tabConfig)
         return self:CreateTab(tabConfig, contentArea, tabButtonsContainer)
