@@ -1,4 +1,4 @@
-local Nova = {}
+getgenv().Nova = {}
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -6,29 +6,20 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 
--- Garantir que a variável global existe
-if not getgenv().Nova then
-    getgenv().Nova = {}
-end
+getgenv().Nova.MainUI = nil
+getgenv().Nova.Tabs = {}
+getgenv().Nova.Enabled = true
+getgenv().Nova.SavedConfig = {}
+getgenv().Nova.CurrentConfig = {}
 
--- Atribuir a tabela local à global
-getgenv().Nova = Nova
-
-Nova.MainUI = nil
-Nova.Tabs = {}
-Nova.Enabled = true
-Nova.SavedConfig = {}
-Nova.CurrentConfig = {}
-
--- Funções auxiliares
-local function CreateRoundCorners(instance, cornerSize)
+getgenv().CreateRoundCorners = function(instance, cornerSize)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, cornerSize)
     corner.Parent = instance
     return corner
 end
 
-local function CreateStroke(instance, color, thickness)
+getgenv().CreateStroke = function(instance, color, thickness)
     local stroke = Instance.new("UIStroke")
     stroke.Color = color
     stroke.Thickness = thickness
@@ -36,9 +27,8 @@ local function CreateStroke(instance, color, thickness)
     return stroke
 end
 
-local function CreateGradient(instance, colors, rotation)
+getgenv().CreateGradient = function(instance, colors, rotation)
     local gradient = Instance.new("UIGradient")
-    
     if #colors == 2 then
         gradient.Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0, colors[1]),
@@ -52,13 +42,12 @@ local function CreateGradient(instance, colors, rotation)
         end
         gradient.Color = ColorSequence.new(keypoints)
     end
-    
     gradient.Rotation = rotation or 0
     gradient.Parent = instance
     return gradient
 end
 
-local function CreateGlow(parent, color, size, offset)
+getgenv().CreateGlow = function(parent, color, size, offset)
     local glow = Instance.new("ImageLabel")
     glow.Name = "Glow"
     glow.BackgroundTransparency = 1
@@ -71,18 +60,16 @@ local function CreateGlow(parent, color, size, offset)
     glow.ScaleType = Enum.ScaleType.Slice
     glow.SliceCenter = Rect.new(100, 100, 100, 100)
     glow.Parent = parent
-    
     local pulseAnim = TweenService:Create(
         glow,
         TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
         {ImageTransparency = 0.7}
     )
     pulseAnim:Play()
-    
     return glow
 end
 
-local function AnimateHover(element, hoverColor, normalColor)
+getgenv().AnimateHover = function(element, hoverColor, normalColor)
     element.MouseEnter:Connect(function()
         TweenService:Create(
             element,
@@ -90,7 +77,6 @@ local function AnimateHover(element, hoverColor, normalColor)
             {BackgroundColor3 = hoverColor}
         ):Play()
     end)
-    
     element.MouseLeave:Connect(function()
         TweenService:Create(
             element,
@@ -100,7 +86,7 @@ local function AnimateHover(element, hoverColor, normalColor)
     end)
 end
 
-local function CreatePadding(parent, left, right, top, bottom)
+getgenv().CreatePadding = function(parent, left, right, top, bottom)
     local padding = Instance.new("UIPadding")
     padding.PaddingLeft = UDim.new(0, left)
     padding.PaddingRight = UDim.new(0, right)
@@ -110,12 +96,9 @@ local function CreatePadding(parent, left, right, top, bottom)
     return padding
 end
 
--- Função principal CreateWindow
-function Nova.CreateWindow(config)
+getgenv().Nova.CreateWindow = function(config)
     config = config or {}
-    
-    local self = Nova
-    
+    local self = getgenv().Nova
     self.CurrentConfig = {
         Name = config.Name or "Nova Hub",
         LoadingTitle = config.LoadingTitle or "Loading Nova Hub",
@@ -146,7 +129,6 @@ function Nova.CreateWindow(config)
         WindowPosition = config.WindowPosition or UDim2.new(0.5, -340, 0.5, -250)
     }
 
-    -- Criar loading screen
     local loadingGui = Instance.new("ScreenGui")
     loadingGui.Name = "NovaLoading"
     loadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -207,7 +189,6 @@ function Nova.CreateWindow(config)
     
     loadingFrame.Parent = loadingGui
 
-    -- Simular loading
     local function UpdateProgress(progress, text)
         statusLabel.Text = text
         TweenService:Create(
@@ -221,13 +202,11 @@ function Nova.CreateWindow(config)
     
     if self.CurrentConfig.Discord and self.CurrentConfig.Discord.Enabled then
         UpdateProgress(0.2, "Connecting to Discord...")
-        -- Simular join discord
         task.wait(0.5)
     end
     
     UpdateProgress(0.3, "Creating interface...")
     
-    -- Criar a GUI principal
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "Nova"
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -238,7 +217,7 @@ function Nova.CreateWindow(config)
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
     mainFrame.BackgroundColor3 = self.CurrentConfig.Theme.Background
-    mainFrame.Size = UDim2.new(0, 0, 0, 0) -- Começar pequeno
+    mainFrame.Size = UDim2.new(0, 0, 0, 0)
     mainFrame.Position = self.CurrentConfig.WindowPosition
     mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
     
@@ -367,7 +346,6 @@ function Nova.CreateWindow(config)
     
     UpdateProgress(0.8, "Loading settings...")
     
-    -- Carregar configurações se habilitado
     if self.CurrentConfig.ConfigurationSaving and self.CurrentConfig.ConfigurationSaving.Enabled then
         task.spawn(function()
             self:LoadConfig()
@@ -376,7 +354,6 @@ function Nova.CreateWindow(config)
     
     UpdateProgress(1, "Complete!")
     
-    -- Animação de entrada
     local fadeIn = TweenService:Create(
         mainFrame,
         TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
@@ -385,12 +362,10 @@ function Nova.CreateWindow(config)
     
     fadeIn:Play()
     
-    -- Remover loading screen
     task.delay(0.6, function()
         loadingGui:Destroy()
     end)
     
-    -- Sistema de arrastar
     local dragging = false
     local dragInput, dragStart, startPos
     
@@ -408,7 +383,6 @@ function Nova.CreateWindow(config)
             dragging = true
             dragStart = input.Position
             startPos = mainFrame.Position
-            
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
@@ -429,54 +403,43 @@ function Nova.CreateWindow(config)
         end
     end)
     
-    -- Keybind para toggle
     UserInputService.InputBegan:Connect(function(input, processed)
         if not processed and input.KeyCode == Enum.KeyCode[self.CurrentConfig.ToggleUIKeybind] then
             self:ToggleUI()
         end
     end)
     
-    -- Criar tabela de retorno com todas as funções
     local windowTable = {
         CreateTab = function(tabConfig)
             return self:CreateTab(tabConfig, contentArea, tabButtonsContainer)
         end,
-        
         Notify = function(title, content, duration, type)
             self:Notify(title, content, duration, type)
         end,
-        
         JoinDiscord = function(inviteCode)
             self:JoinDiscord(inviteCode)
         end,
-        
         SaveConfig = function()
             return self:SaveConfig()
         end,
-        
         LoadConfig = function()
             return self:LoadConfig()
         end,
-        
         SetConfigValue = function(key, value)
             self:SetConfigValue(key, value)
         end,
-        
         GetConfigValue = function(key, default)
             return self:GetConfigValue(key, default)
         end,
-        
         ToggleUI = function()
             self:ToggleUI()
         end,
-        
         Destroy = function()
             if screenGui then
                 screenGui:Destroy()
                 self.MainUI = nil
             end
         end,
-        
         UpdateTheme = function(newTheme)
             if newTheme then
                 for k, v in pairs(newTheme) do
@@ -488,14 +451,13 @@ function Nova.CreateWindow(config)
         end
     }
     
-    -- Atribuir à variável global
     getgenv().NovaWindow = windowTable
     
     return windowTable
 end
 
--- Função CreateTab
-function Nova:CreateTab(tabConfig, contentArea, tabButtonsContainer)
+getgenv().Nova.CreateTab = function(tabConfig, contentArea, tabButtonsContainer)
+    local self = getgenv().Nova
     local tabButton = Instance.new("TextButton")
     tabButton.Name = tabConfig.Name .. "Button"
     tabButton.BackgroundColor3 = self.CurrentConfig.Theme.Element
@@ -541,7 +503,6 @@ function Nova:CreateTab(tabConfig, contentArea, tabButtonsContainer)
                 ):Play()
             end
         end
-        
         tabContent.Visible = true
         TweenService:Create(
             tabButton,
@@ -573,14 +534,11 @@ function Nova:CreateTab(tabConfig, contentArea, tabButtonsContainer)
             section.Name = "Section"
             section.BackgroundColor3 = sectionConfig.BackgroundColor or self.CurrentConfig.Theme.Element
             section.Size = UDim2.new(1, 0, 0, sectionConfig.Height or 48)
-            
             CreateRoundCorners(section, sectionConfig.CornerSize or 12)
             CreateStroke(section, sectionConfig.StrokeColor or self.CurrentConfig.Theme.Primary, sectionConfig.StrokeThickness or 2)
-            
             if sectionConfig.Gradient then
                 CreateGradient(section, sectionConfig.Gradient.Colors or {self.CurrentConfig.Theme.Element, self.CurrentConfig.Theme.Topbar}, sectionConfig.Gradient.Rotation or 90)
             end
-            
             local sectionLabel = Instance.new("TextLabel")
             sectionLabel.Name = "SectionLabel"
             sectionLabel.BackgroundTransparency = 1
@@ -592,13 +550,10 @@ function Nova:CreateTab(tabConfig, contentArea, tabButtonsContainer)
             sectionLabel.TextSize = sectionConfig.TextSize or 18
             sectionLabel.TextXAlignment = Enum.TextXAlignment.Left
             sectionLabel.Parent = section
-            
             if sectionConfig.TitleGradient then
                 CreateGradient(sectionLabel, sectionConfig.TitleGradient.Colors or {self.CurrentConfig.Theme.Primary, self.CurrentConfig.Theme.Text}, sectionConfig.TitleGradient.Rotation or 45)
             end
-            
             section.Parent = tabContent
-            
             local sectionTable = {
                 SetText = function(text)
                     sectionLabel.Text = text
@@ -610,10 +565,8 @@ function Nova:CreateTab(tabConfig, contentArea, tabButtonsContainer)
                     section:Destroy()
                 end
             }
-            
             return sectionTable
         end,
-        
         CreateButton = function(buttonConfig)
             local button = Instance.new("TextButton")
             button.Name = "Button"
@@ -624,16 +577,12 @@ function Nova:CreateTab(tabConfig, contentArea, tabButtonsContainer)
             button.TextColor3 = buttonConfig.TextColor or self.CurrentConfig.Theme.Text
             button.TextSize = buttonConfig.TextSize or 16
             button.AutoButtonColor = false
-            
             CreateRoundCorners(button, buttonConfig.CornerSize or 12)
             CreateStroke(button, buttonConfig.StrokeColor or self.CurrentConfig.Theme.Primary, buttonConfig.StrokeThickness or 2)
-            
             if buttonConfig.Gradient then
                 CreateGradient(button, buttonConfig.Gradient.Colors or {self.CurrentConfig.Theme.Element, self.CurrentConfig.Theme.Topbar}, buttonConfig.Gradient.Rotation or 90)
             end
-            
             AnimateHover(button, buttonConfig.HoverColor or self.CurrentConfig.Theme.Primary, buttonConfig.BackgroundColor or self.CurrentConfig.Theme.Element)
-            
             button.MouseButton1Click:Connect(function()
                 local clickAnim = TweenService:Create(
                     button,
@@ -641,7 +590,6 @@ function Nova:CreateTab(tabConfig, contentArea, tabButtonsContainer)
                     {Size = UDim2.new(0.97, 0, 0, buttonConfig.Height and buttonConfig.Height - 3 or 40)}
                 )
                 clickAnim:Play()
-                
                 clickAnim.Completed:Connect(function()
                     TweenService:Create(
                         button,
@@ -649,14 +597,11 @@ function Nova:CreateTab(tabConfig, contentArea, tabButtonsContainer)
                         {Size = UDim2.new(1, 0, 0, buttonConfig.Height or 43)}
                     ):Play()
                 end)
-                
                 if buttonConfig.Callback then
                     buttonConfig.Callback()
                 end
             end)
-            
             button.Parent = tabContent
-            
             local buttonTable = {
                 SetText = function(text)
                     button.Text = text
@@ -668,20 +613,16 @@ function Nova:CreateTab(tabConfig, contentArea, tabButtonsContainer)
                     button:Destroy()
                 end
             }
-            
             return buttonTable
         end,
-        
         CreateToggle = function(toggleConfig)
             local toggleContainer = Instance.new("Frame")
             toggleContainer.Name = "ToggleContainer"
             toggleContainer.BackgroundColor3 = toggleConfig.BackgroundColor or self.CurrentConfig.Theme.Element
             toggleContainer.Size = UDim2.new(1, 0, 0, toggleConfig.Height or 38)
-            
             CreateRoundCorners(toggleContainer, toggleConfig.CornerSize or 12)
             CreateStroke(toggleContainer, toggleConfig.StrokeColor or self.CurrentConfig.Theme.Primary, toggleConfig.StrokeThickness or 2)
             CreatePadding(toggleContainer, 18, 18, 0, 0)
-            
             local toggleLabel = Instance.new("TextLabel")
             toggleLabel.Name = "ToggleLabel"
             toggleLabel.BackgroundTransparency = 1
@@ -692,7 +633,6 @@ function Nova:CreateTab(tabConfig, contentArea, tabButtonsContainer)
             toggleLabel.TextSize = toggleConfig.TextSize or 15
             toggleLabel.TextXAlignment = Enum.TextXAlignment.Left
             toggleLabel.Parent = toggleContainer
-            
             local toggleButton = Instance.new("TextButton")
             toggleButton.Name = "ToggleButton"
             toggleButton.BackgroundColor3 = toggleConfig.Default and (toggleConfig.EnabledColor or self.CurrentConfig.Theme.Success) or (toggleConfig.DisabledColor or Color3.fromRGB(80, 80, 80))
@@ -704,23 +644,17 @@ function Nova:CreateTab(tabConfig, contentArea, tabButtonsContainer)
             toggleButton.TextColor3 = toggleConfig.TextColor or self.CurrentConfig.Theme.Text
             toggleButton.TextSize = toggleConfig.ToggleTextSize or 13
             toggleButton.AutoButtonColor = false
-            
             CreateRoundCorners(toggleButton, toggleConfig.ToggleCornerSize or 15)
             CreateStroke(toggleButton, toggleConfig.StrokeColor or self.CurrentConfig.Theme.Primary, toggleConfig.ToggleStrokeThickness or 2.5)
-            
             local toggleIndicator = Instance.new("Frame")
             toggleIndicator.Name = "Indicator"
             toggleIndicator.BackgroundColor3 = toggleConfig.IndicatorColor or self.CurrentConfig.Theme.Text
             toggleIndicator.Size = UDim2.new(0, toggleConfig.IndicatorSize or 22, 0, toggleConfig.IndicatorSize or 22)
             toggleIndicator.Position = toggleConfig.Default and UDim2.new(1, -(toggleConfig.IndicatorSize and (toggleConfig.IndicatorSize + 4) or 26), 0.5, -((toggleConfig.IndicatorSize or 22) / 2)) or UDim2.new(0, 4, 0.5, -((toggleConfig.IndicatorSize or 22) / 2))
-            
             CreateRoundCorners(toggleIndicator, toggleConfig.IndicatorCornerSize or 11)
-            
             toggleIndicator.Parent = toggleButton
-            
             local toggleState = toggleConfig.Default or false
             local toggleName = toggleConfig.Text or toggleConfig.Name or "Toggle"
-            
             local savedValue = self:GetConfigValue(toggleName, toggleState)
             if savedValue ~= toggleState then
                 toggleState = savedValue
@@ -730,46 +664,35 @@ function Nova:CreateTab(tabConfig, contentArea, tabButtonsContainer)
                 toggleIndicator.Position = targetPos
                 toggleButton.Text = toggleState and "ON" or "OFF"
             end
-            
             toggleButton.MouseButton1Click:Connect(function()
                 toggleState = not toggleState
-                
                 local targetColor = toggleState and (toggleConfig.EnabledColor or self.CurrentConfig.Theme.Success) or (toggleConfig.DisabledColor or Color3.fromRGB(80, 80, 80))
                 local targetPos = toggleState and UDim2.new(1, -(toggleConfig.IndicatorSize and (toggleConfig.IndicatorSize + 4) or 26), 0.5, -((toggleConfig.IndicatorSize or 22) / 2)) or UDim2.new(0, 4, 0.5, -((toggleConfig.IndicatorSize or 22) / 2))
-                
                 TweenService:Create(
                     toggleButton,
                     TweenInfo.new(0.35, Enum.EasingStyle.Quad),
                     {BackgroundColor3 = targetColor}
                 ):Play()
-                
                 TweenService:Create(
                     toggleIndicator,
                     TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
                     {Position = targetPos}
                 ):Play()
-                
                 toggleButton.Text = toggleState and "ON" or "OFF"
-                
                 self:SetConfigValue(toggleName, toggleState)
-                
                 if toggleConfig.Callback then
                     toggleConfig.Callback(toggleState)
                 end
             end)
-            
             toggleButton.Parent = toggleContainer
             toggleContainer.Parent = tabContent
-            
             local toggleTable = {
                 SetValue = function(value)
                     toggleState = value
                     local targetColor = value and (toggleConfig.EnabledColor or self.CurrentConfig.Theme.Success) or (toggleConfig.DisabledColor or Color3.fromRGB(80, 80, 80))
                     local targetPos = value and UDim2.new(1, -(toggleConfig.IndicatorSize and (toggleConfig.IndicatorSize + 4) or 26), 0.5, -((toggleConfig.IndicatorSize or 22) / 2)) or UDim2.new(0, 4, 0.5, -((toggleConfig.IndicatorSize or 22) / 2))
-                    
                     TweenService:Create(toggleButton, TweenInfo.new(0.35, Enum.EasingStyle.Quad), {BackgroundColor3 = targetColor}):Play()
                     TweenService:Create(toggleIndicator, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = targetPos}):Play()
-                    
                     toggleButton.Text = value and "ON" or "OFF"
                     self:SetConfigValue(toggleName, value)
                     if toggleConfig.Callback then
@@ -783,19 +706,15 @@ function Nova:CreateTab(tabConfig, contentArea, tabButtonsContainer)
                     toggleContainer:Destroy()
                 end
             }
-            
             return toggleTable
         end,
-        
         CreateLabel = function(labelConfig)
             local labelContainer = Instance.new("Frame")
             labelContainer.Name = "LabelContainer"
             labelContainer.BackgroundColor3 = labelConfig.BackgroundColor or self.CurrentConfig.Theme.Element
             labelContainer.Size = UDim2.new(1, 0, 0, labelConfig.Height or 33)
-            
             CreateRoundCorners(labelContainer, labelConfig.CornerSize or 10)
             CreateStroke(labelContainer, labelConfig.StrokeColor or self.CurrentConfig.Theme.Primary, labelConfig.StrokeThickness or 1.5)
-            
             local label = Instance.new("TextLabel")
             label.Name = "Label"
             label.BackgroundTransparency = 1
@@ -807,9 +726,7 @@ function Nova:CreateTab(tabConfig, contentArea, tabButtonsContainer)
             label.TextSize = labelConfig.TextSize or 15
             label.TextXAlignment = Enum.TextXAlignment.Left
             label.Parent = labelContainer
-            
             labelContainer.Parent = tabContent
-            
             local labelTable = {
                 SetText = function(text)
                     label.Text = text
@@ -821,42 +738,38 @@ function Nova:CreateTab(tabConfig, contentArea, tabButtonsContainer)
                     labelContainer:Destroy()
                 end
             }
-            
             return labelTable
         end
     }
-    
     return tabTable
 end
 
--- Funções auxiliares
-function Nova:Notify(title, content, duration, notificationType)
-    -- Implementação simplificada da notificação
+getgenv().Nova.Notify = function(title, content, duration, notificationType)
     print("[Nova] " .. title .. ": " .. content)
 end
 
-function Nova:JoinDiscord(inviteCode)
-    -- Implementação simplificada do Discord
+getgenv().Nova.JoinDiscord = function(inviteCode)
     print("[Nova] Discord invite: " .. inviteCode)
 end
 
-function Nova:SaveConfig()
+getgenv().Nova.SaveConfig = function()
     return true
 end
 
-function Nova:LoadConfig()
+getgenv().Nova.LoadConfig = function()
     return {}
 end
 
-function Nova:SetConfigValue(key, value)
-    self.SavedConfig[key] = value
+getgenv().Nova.SetConfigValue = function(key, value)
+    getgenv().Nova.SavedConfig[key] = value
 end
 
-function Nova:GetConfigValue(key, default)
-    return self.SavedConfig[key] or default
+getgenv().Nova.GetConfigValue = function(key, default)
+    return getgenv().Nova.SavedConfig[key] or default
 end
 
-function Nova:ToggleUI()
+getgenv().Nova.ToggleUI = function()
+    local self = getgenv().Nova
     if self.MainUI then
         self.Enabled = not self.Enabled
         local mainFrame = self.MainUI:FindFirstChild("MainFrame")
@@ -866,7 +779,6 @@ function Nova:ToggleUI()
     end
 end
 
--- Exportar função CreateWindow globalmente
-getgenv().CreateWindow = Nova.CreateWindow
+getgenv().CreateWindow = getgenv().Nova.CreateWindow
 
-return Nova
+return getgenv().Nova
