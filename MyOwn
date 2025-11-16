@@ -126,7 +126,7 @@ getgenv().Nova.CreateWindow = function(config)
             Error = Color3.fromRGB(255, 85, 85)
         },
         WindowSize = config.WindowSize or UDim2.new(0, 680, 0, 500),
-        WindowPosition = config.WindowPosition or UDim2.new(0.5, -340, 0.5, -250)
+        WindowPosition = config.WindowPosition or UDim2.new(0.5, 0, 0.5, 0)
     }
 
     local loadingGui = Instance.new("ScreenGui")
@@ -138,7 +138,7 @@ getgenv().Nova.CreateWindow = function(config)
     loadingFrame.Name = "LoadingFrame"
     loadingFrame.BackgroundColor3 = self.CurrentConfig.Theme.Background
     loadingFrame.Size = UDim2.new(0, 420, 0, 220)
-    loadingFrame.Position = UDim2.new(0.5, -210, 0.5, -110)
+    loadingFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
     loadingFrame.AnchorPoint = Vector2.new(0.5, 0.5)
     
     CreateRoundCorners(loadingFrame, 16)
@@ -459,11 +459,11 @@ end
 getgenv().Nova.CreateTab = function(tabConfig, contentArea, tabButtonsContainer)
     local self = getgenv().Nova
     local tabButton = Instance.new("TextButton")
-    tabButton.Name = tabConfig.Name .. "Button"
+    tabButton.Name = (tabConfig.Name or "Tab") .. "Button"
     tabButton.BackgroundColor3 = self.CurrentConfig.Theme.Element
     tabButton.Size = UDim2.new(0, 140, 0, 38)
     tabButton.Font = Enum.Font.GothamBold
-    tabButton.Text = tabConfig.Name
+    tabButton.Text = tabConfig.Name or "Tab"
     tabButton.TextColor3 = self.CurrentConfig.Theme.Text
     tabButton.TextSize = 15
     tabButton.AutoButtonColor = false
@@ -472,7 +472,7 @@ getgenv().Nova.CreateTab = function(tabConfig, contentArea, tabButtonsContainer)
     CreateStroke(tabButton, self.CurrentConfig.Theme.Primary, 2)
     
     local tabContent = Instance.new("ScrollingFrame")
-    tabContent.Name = tabConfig.Name .. "Content"
+    tabContent.Name = (tabConfig.Name or "Tab") .. "Content"
     tabContent.BackgroundTransparency = 1
     tabContent.Size = UDim2.new(1, 0, 1, 0)
     tabContent.Position = UDim2.new(0, 0, 0, 0)
@@ -520,7 +520,7 @@ getgenv().Nova.CreateTab = function(tabConfig, contentArea, tabButtonsContainer)
         Content = tabContent
     }
     
-    self.Tabs[tabConfig.Name] = tab
+    self.Tabs[tabConfig.Name or "Tab"] = tab
     
     if #self.Tabs == 1 then
         tabContent.Visible = true
@@ -745,11 +745,11 @@ getgenv().Nova.CreateTab = function(tabConfig, contentArea, tabButtonsContainer)
 end
 
 getgenv().Nova.Notify = function(title, content, duration, notificationType)
-    print("[Nova] " .. title .. ": " .. content)
+    print("[Nova] " .. tostring(title) .. ": " .. tostring(content))
 end
 
 getgenv().Nova.JoinDiscord = function(inviteCode)
-    print("[Nova] Discord invite: " .. inviteCode)
+    print("[Nova] Discord invite: " .. tostring(inviteCode))
 end
 
 getgenv().Nova.SaveConfig = function()
