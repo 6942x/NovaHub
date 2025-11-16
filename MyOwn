@@ -1409,4 +1409,9 @@ function NovaHub:ToggleUI()
     end
 end
 
+-- Make CreateWindow globally accessible immediately
+getgenv().CreateWindow = function(config)
+    return NovaHub:CreateWindow(config)
+end
+
 return NovaHub
